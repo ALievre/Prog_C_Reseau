@@ -20,6 +20,8 @@ données du réseau */
 #include <string.h>
 
 #include "message.h"
+//#include "udp.h"
+//#include "tcp.h"
 
 int make_socket(int protocole) {
 	if (protocole == IPPROTO_UDP){	
@@ -38,7 +40,7 @@ int main (int argc, char **argv)
 	int nb_message = -1; /* Nb de messages à envoyer ou à recevoir, par défaut : 10 en émission, infini en réception */
 	int taille_msg = -1; /* Taille du messages à envoyer ou à recevoir, par défaut : 30 */
 	int source = -1; /* 0=puits, 1=source */
-	int udp = 0; /* 0=tcp, 1=udp */
+	int udp = -1; /* 0=tcp, 1=udp */
 	int port = atoi(argv[argc-1]);
 	char TP[4] ;
 	char machine[sizeof(argv[argc-2])];
@@ -46,7 +48,8 @@ int main (int argc, char **argv)
 	strcpy(TP, "TCP");
 	strcpy(machine, argv[argc-2]);	
 	//port = htons(port);
-
+	
+	//Lecture de la ligne de commande
 	while ((c = getopt(argc, argv, "pn:sul:")) != -1) {
 		switch (c) {
 		case 'p':
@@ -83,119 +86,196 @@ int main (int argc, char **argv)
 			break;
 		}
 	}
-
+	
+	//Erreur si l'usager ne rentre pas le type de source
 	if (source == -1) {
 		printf("usage: cmd [-p|-s][-n ##][-u][nom de la machine][n° de port]\n");
 		exit(1) ;
 	}
 
-	
+	//Si l'usager ne rentre pas de taille de msg, on met 30 par défaut
 	if (taille_msg == -1) {
 		taille_msg = 30;
-		printf("taille du message = 30 par défaut\n");
 	}
 	
-
-	if (nb_message != -1) {
-		if (source == 1)
-			printf("nb de tampons à envoyer : %d\n", nb_message);
-		else
-			printf("nb de tampons à recevoir : %d\n", nb_message);
-	} else {
-		if (source == 1) {
+	//Si l'usager ne rentre pas de TP, on met TCP par défaut
+	if (udp == -1) {
+		udp = 0;
+	}
+	
+	//Si l'usager ne rentre pas de nombre de msg, on met par défaut 10 à envoyer et infini à recevoir
+	if ((nb_message == -1) && (source == 1)) {
 			nb_message = 10 ;
-			printf("nb de tampons à envoyer = 10 par défaut\n");
-		} else
-		printf("nb de tampons à envoyer = infini\n");
-
 	}
 
-	
-	char msg[taille_msg];
-	int nb_entete = 5;
-	int nb_tiret = 0;
-	char entete[taille_msg];
-	char * pmsg = msg;
-
+	//Usage de l'UDP
 	if (udp == 1) {
+		//Création d'un socket
 		int sock = make_socket(IPPROTO_UDP);
+
+		//Si on est la source et que la création du socket à fonctionner
 		if (source == 1 && sock != -1) {
 			printf("SOURCE: lg_mesg_emis=%d, port=%d, nb_envois=%d, TP=%s, dest=%s\n", taille_msg, port, nb_message, TP, machine);
 	
-			// BUILDING DISTANT ADDR
+			// Déclaration de l'adresse distante
 			struct hostent *hp;
 			struct sockaddr_in adr_distant;
-
+			
+			//Affectation du domaine et du n° de port
 			memset((char * )& adr_distant,0,sizeof(adr_distant));
 			adr_distant.sin_family = AF_INET;
 			adr_distant.sin_port = port;
-
+			
+			//Affectation de l'adresse IP
 			if((hp = gethostbyname("localhost"))==NULL) {
 				printf("Erreur gethostbyname\n");
 				exit(1);
 			} 
 			memcpy((char *)&(adr_distant.sin_addr.s_addr), hp->h_addr, hp->h_length);
-			char alphabet = 'a';
-			int compteur = 0;
 
-			//sending msg
+			char alphabet = 'a';
+			int nb_entete = 5;
+
+			//Envoie du message
 			for(int i = 1; i<=nb_message; i++) {
+
+				int nb_tiret;
+				char msg[taille_msg];
+				char msg_ent[taille_msg];
+				char * pmsg = msg_ent;
+				
+				//Réinitialisation de msg_ent
+				memset(msg_ent, 0, sizeof(msg_ent));
+
 				construire_message(msg, alphabet, taille_msg);
-				compteur++;
-				/*//char char_i[sizeof((char) i)];
-				//itoa(i, char_i,10);
-				nb_tiret = nb_entete - sizeof((char) i);
-				for(int j = 0; j<nb_tiret; j++) {					
-					entete[nb_entete-j-1] = '-';
+
+				//Conversion du compteur en char
+				char n_compteur[nb_entete];
+				sprintf(n_compteur, "%d", i);
+
+				nb_tiret = nb_entete - strlen(n_compteur);
+				
+				//Ecriture des tirets
+				for(int j = 0; j<nb_tiret; j++) {
+					msg_ent[j] = '-';
 				}
-				sprintf(entete, "%d", i);
-				//strcat(*entete, (char) i);
-				strcat(entete,msg); */
-				int ret = sendto(sock, pmsg, taille_msg, 0,(struct sockaddr*)&adr_distant, sizeof(adr_distant));
-				if (ret!=-1){  
-					printf("SOURCE: Envoi n°%d (%d)[%s]\n", i, taille_msg, msg);
+
+				//Mise en place du message entier par concaténation
+				strncat(msg_ent, n_compteur, strlen(n_compteur));
+				strncat(msg_ent,msg, (taille_msg - nb_entete));
+
+				//Envoi du message
+				int result_send = sendto(sock, pmsg, taille_msg, 0,(struct sockaddr*)&adr_distant, sizeof(adr_distant));
+
+				//Si l'envoi est réussi, on affiche les messages sur le terminal
+				if (result_send!=-1){  
+					printf("SOURCE: Envoi n°%d (%d)[%s]\n", i, taille_msg, msg_ent);
 				}
+
+				//Incrémentation des lettres de l'alphabet
 				if(alphabet == 'z') {
 					alphabet = 'a';
 				} else alphabet++;
 			}
+
+			//Fin de l'envoi
+			printf("SOURCE: fin\n");
 			
+		//Si on est le puits et que la création du socket à fonctionner
 		} else if (sock != -1){ 
-			printf("PUITS: lg_mesg_lu=%d, port=%d, nb_receptions=%d, TP=%s\n", taille_msg, port, nb_message, TP);
+			//Si le nombre de réception est infini
+			if(nb_message == -1) {
+				printf("PUITS: lg_mesg_lu=%d, port=%d, nb_receptions=infini, TP=%s\n", taille_msg, port, TP);
+				
+				//Déclaration de l'adresse locale et du message
+				struct sockaddr_in adr_local;
+				char msg[taille_msg];
+				char * pmsg = msg;
 
-			struct sockaddr_in adr_local;
+				//Déclaration de l'adresse distante et de sa taille
+				struct sockaddr_in adr_em;
+		    		socklen_t lg_adr_em;
+				lg_adr_em = sizeof(struct sockaddr_in);
 
-			// distant address + its length
-			struct sockaddr_in adr_em;
-    			socklen_t lg_adr_em;
-			lg_adr_em = sizeof(struct sockaddr_in);
+				//Construction de l'adresse du socket, du n° de port et de l'adresse IP
+				memset((char * )& adr_local,0,sizeof(adr_local));
+				adr_local.sin_family = AF_INET;
+				adr_local.sin_port = port;
+				adr_local.sin_addr.s_addr= INADDR_ANY;
 
-			memset((char * )& adr_local,0,sizeof(adr_local));
-			adr_local.sin_family = AF_INET;
-			adr_local.sin_port = port;
-			adr_local.sin_addr.s_addr= INADDR_ANY;
-
-			if(bind(sock,(struct sockaddr *)&adr_local, sizeof(adr_local)) ==-1) {
-				printf("Echec du bind\n");
-				exit(1);
-			}
-
-			int ret;
-			int i=1;
-			while(1){
-				ret = recvfrom(sock, pmsg, taille_msg, 0,(struct sockaddr *) &adr_em, &lg_adr_em);
-				if (ret!=-1){  
-					printf("PUITS: Reception n°%d (%d)[%s]\n", i, taille_msg, pmsg);
-					i++;
+				//Association de l'adresse du socket et de sa représentation interne
+				if(bind(sock,(struct sockaddr *)&adr_local, sizeof(adr_local)) ==-1) {
+					printf("Echec du bind\n");
+					exit(1);
 				}
-			}
 
+				int result_recv;
+				int i=1;
+					
+				//Boucle infinie
+				while(1){
+					//Réception du message
+					result_recv = recvfrom(sock, pmsg, taille_msg, 0,(struct sockaddr *) &adr_em, &lg_adr_em);
+
+					//Si la réception n'a pas échouée, on affiche le message sur le terminal
+					if (result_recv!=-1){  
+						printf("PUITS: Reception n°%d (%d)[%s]\n", i, taille_msg, msg);
+						i++;
+					}
+				}
+	
+			//Si le nombre de réception est défini par l'usager
+			} else {
+				printf("PUITS: lg_mesg_lu=%d, port=%d, nb_receptions=%d, TP=%s\n", taille_msg, port, nb_message, TP);
+
+				//Déclaration de l'adresse locale et du message
+				struct sockaddr_in adr_local;
+				char msg[taille_msg];
+				char * pmsg = msg;
+
+				//Déclaration de l'adresse distante et de sa taille
+				struct sockaddr_in adr_em;
+		    		socklen_t lg_adr_em;
+				lg_adr_em = sizeof(struct sockaddr_in);
+
+				//Construction de l'adresse du socket, du n° de port et de l'adresse IP
+				memset((char * )& adr_local,0,sizeof(adr_local));
+				adr_local.sin_family = AF_INET;
+				adr_local.sin_port = port;
+				adr_local.sin_addr.s_addr= INADDR_ANY;
+
+				//Association de l'adresse du socket et de sa représentation interne
+				if(bind(sock,(struct sockaddr *)&adr_local, sizeof(adr_local)) ==-1) {
+					printf("Echec du bind\n");
+					exit(1);
+				}
+
+				int result_recv;
+				int i = 1;
+					
+				//Boucle infinie
+				while(i<=nb_message){
+					//Réception du message
+					result_recv = recvfrom(sock, pmsg, taille_msg, 0,(struct sockaddr *) &adr_em, &lg_adr_em);
+
+					//Si la réception n'a pas échouée, on affiche le message sur le terminal
+					if (result_recv != -1){  
+						printf("PUITS: Reception n°%d (%d)[%s]\n", i, taille_msg, msg);
+						i++;
+					}
+				}
+
+			}
+		
+		//Si la création du socket a échoué, on arrête le programme
 		} else {
 			printf("Echec de la création du socket");
 			exit(1);
 		}
+
+	//Usage du TCP
 	} else {
-		//TODO
+		//TO DO
 	}
 
 	return(0);
