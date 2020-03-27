@@ -1,0 +1,1 @@
+int creer_socket(int protocole);

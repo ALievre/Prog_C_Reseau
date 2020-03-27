@@ -19,18 +19,10 @@ données du réseau */
 #include <errno.h>
 #include <string.h>
 
-#include "message.h"
-//#include "udp.h"
+#include "udp.h"
 //#include "tcp.h"
+#include "socket.h"
 
-int make_socket(int protocole) {
-	if (protocole == IPPROTO_UDP){	
-		return socket(AF_INET, SOCK_DGRAM, protocole );
-	} else if (protocole == IPPROTO_TCP) {
-		return socket(AF_INET, SOCK_STREAM, protocole );
-	}
-	return -1;
-}
 
 int main (int argc, char **argv)
 {
@@ -111,71 +103,23 @@ int main (int argc, char **argv)
 	//Usage de l'UDP
 	if (udp == 1) {
 		//Création d'un socket
-		int sock = make_socket(IPPROTO_UDP);
+		int sock = creer_socket(IPPROTO_UDP);
 
 		//Si on est la source et que la création du socket à fonctionner
 		if (source == 1 && sock != -1) {
 			printf("SOURCE: lg_mesg_emis=%d, port=%d, nb_envois=%d, TP=%s, dest=%s\n", taille_msg, port, nb_message, TP, machine);
 	
-			// Déclaration de l'adresse distante
-			struct hostent *hp;
+			// Déclaration de l'adresse distante et construction de l'adresse du socket
 			struct sockaddr_in adr_distant;
-			
-			//Affectation du domaine et du n° de port
-			memset((char * )& adr_distant,0,sizeof(adr_distant));
-			adr_distant.sin_family = AF_INET;
-			adr_distant.sin_port = port;
-			
-			//Affectation de l'adresse IP
-			if((hp = gethostbyname("localhost"))==NULL) {
-				printf("Erreur gethostbyname\n");
-				exit(1);
-			} 
-			memcpy((char *)&(adr_distant.sin_addr.s_addr), hp->h_addr, hp->h_length);
-
-			char alphabet = 'a';
-			int nb_entete = 5;
+			adr_distant = construire_adresse_socket_source(port);
 
 			//Envoie du message
-			for(int i = 1; i<=nb_message; i++) {
+            char msg_ent[taille_msg];
+            char * pmsg = msg_ent;
+            char alphabet = 'a';
 
-				int nb_tiret;
-				char msg[taille_msg];
-				char msg_ent[taille_msg];
-				char * pmsg = msg_ent;
-				
-				//Réinitialisation de msg_ent
-				memset(msg_ent, 0, sizeof(msg_ent));
-
-				construire_message(msg, alphabet, taille_msg);
-
-				//Conversion du compteur en char
-				char n_compteur[nb_entete];
-				sprintf(n_compteur, "%d", i);
-
-				nb_tiret = nb_entete - strlen(n_compteur);
-				
-				//Ecriture des tirets
-				for(int j = 0; j<nb_tiret; j++) {
-					msg_ent[j] = '-';
-				}
-
-				//Mise en place du message entier par concaténation
-				strncat(msg_ent, n_compteur, strlen(n_compteur));
-				strncat(msg_ent,msg, (taille_msg - nb_entete));
-
-				//Envoi du message
-				int result_send = sendto(sock, pmsg, taille_msg, 0,(struct sockaddr*)&adr_distant, sizeof(adr_distant));
-
-				//Si l'envoi est réussi, on affiche les messages sur le terminal
-				if (result_send!=-1){  
-					printf("SOURCE: Envoi n°%d (%d)[%s]\n", i, taille_msg, msg_ent);
-				}
-
-				//Incrémentation des lettres de l'alphabet
-				if(alphabet == 'z') {
-					alphabet = 'a';
-				} else alphabet++;
+            for(int i = 1; i<=nb_message; i++) {
+                envoyer_message(i, taille_msg, pmsg, sock, nb_message, adr_distant, alphabet);
 			}
 
 			//Fin de l'envoi
@@ -188,26 +132,16 @@ int main (int argc, char **argv)
 				printf("PUITS: lg_mesg_lu=%d, port=%d, nb_receptions=infini, TP=%s\n", taille_msg, port, TP);
 				
 				//Déclaration de l'adresse locale et du message
-				struct sockaddr_in adr_local;
 				char msg[taille_msg];
 				char * pmsg = msg;
 
 				//Déclaration de l'adresse distante et de sa taille
 				struct sockaddr_in adr_em;
-		    		socklen_t lg_adr_em;
+				socklen_t lg_adr_em;
 				lg_adr_em = sizeof(struct sockaddr_in);
 
-				//Construction de l'adresse du socket, du n° de port et de l'adresse IP
-				memset((char * )& adr_local,0,sizeof(adr_local));
-				adr_local.sin_family = AF_INET;
-				adr_local.sin_port = port;
-				adr_local.sin_addr.s_addr= INADDR_ANY;
-
-				//Association de l'adresse du socket et de sa représentation interne
-				if(bind(sock,(struct sockaddr *)&adr_local, sizeof(adr_local)) ==-1) {
-					printf("Echec du bind\n");
-					exit(1);
-				}
+				//Construction et association
+				adr_em = construire_adresse_socket_puit(port, sock);
 
 				int result_recv;
 				int i=1;
@@ -233,22 +167,13 @@ int main (int argc, char **argv)
 				char msg[taille_msg];
 				char * pmsg = msg;
 
-				//Déclaration de l'adresse distante et de sa taille
-				struct sockaddr_in adr_em;
-		    		socklen_t lg_adr_em;
-				lg_adr_em = sizeof(struct sockaddr_in);
+                //Déclaration de l'adresse distante et de sa taille
+                struct sockaddr_in adr_em;
+                socklen_t lg_adr_em;
+                lg_adr_em = sizeof(struct sockaddr_in);
 
-				//Construction de l'adresse du socket, du n° de port et de l'adresse IP
-				memset((char * )& adr_local,0,sizeof(adr_local));
-				adr_local.sin_family = AF_INET;
-				adr_local.sin_port = port;
-				adr_local.sin_addr.s_addr= INADDR_ANY;
-
-				//Association de l'adresse du socket et de sa représentation interne
-				if(bind(sock,(struct sockaddr *)&adr_local, sizeof(adr_local)) ==-1) {
-					printf("Echec du bind\n");
-					exit(1);
-				}
+                //Construction et association
+                adr_em = construire_adresse_socket_puit(port, sock);
 
 				int result_recv;
 				int i = 1;

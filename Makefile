@@ -7,4 +7,3 @@ tsock_v2.o: tsock_v2.c
 
 message.o: message.c
 	gcc -g -Wall -c message.c
-

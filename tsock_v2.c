@@ -253,7 +253,7 @@ int main (int argc, char **argv)
                 int result_recv;
                 int i = 1;
 
-                //Boucle infinie
+                //Boucle finie
                 while(i<=nb_message){
                     //Réception du message
                     result_recv = recvfrom(sock, pmsg, taille_msg, 0,(struct sockaddr *) &adr_em, &lg_adr_em);
@@ -264,6 +264,8 @@ int main (int argc, char **argv)
                         i++;
                     }
                 }
+
+                printf("PUITS: fin\n");
 
             }
 
@@ -278,7 +280,7 @@ int main (int argc, char **argv)
         //Création d'un socket
         int sock = make_socket(IPPROTO_TCP);
 
-        //Si on est la source et que la création du socket à fonctionner
+        //Si on est la source et que la création du socket a fonctionné
         if (source == 1 && sock != -1) {
             printf("SOURCE: lg_mesg_emis=%d, port=%d, nb_envois=%d, TP=%s, dest=%s\n", taille_msg, port, nb_message, TP, machine);
 
@@ -303,6 +305,7 @@ int main (int argc, char **argv)
             while (result_conn == -1) {
                 result_conn = connect(sock, (struct sockaddr *) &adr_distant, sizeof(adr_distant));
             }
+            printf("Connexion établie !\n");
 
             char alphabet = 'a';
             int nb_entete = 5;
@@ -335,7 +338,6 @@ int main (int argc, char **argv)
                 strncat(msg_ent, n_compteur, strlen(n_compteur));
                 strncat(msg_ent,msg, (taille_msg - nb_entete));
 
-                int result_send = -1;
                 int result_write = -1;
 
                 //Ecriture du message sur le buffer
@@ -343,13 +345,8 @@ int main (int argc, char **argv)
                     result_write = write(sock, pmsg, taille_msg);
                 }
 
-                //Envoi du message sur le buffer
-                while(result_send == -1){
-                    result_send = send(sock, pmsg, taille_msg,0);
-                }
-
                 //Si l'envoi est réussi, on affiche les messages sur le terminal
-                if (result_send!=-1){
+                if (result_write!=-1){
                     printf("SOURCE: Envoi n°%d (%d)[%s]\n", i, taille_msg, msg_ent);
                 }
 
@@ -368,6 +365,7 @@ int main (int argc, char **argv)
             while(result_shutdwn == -1){
                 result_shutdwn = shutdown(sock,1);
             }
+            printf("Shutdown réussi !\n");
 
             //Si on est le puits et que la création du socket à fonctionner
         } else if (sock != -1){
@@ -402,12 +400,14 @@ int main (int argc, char **argv)
                 while(result_listen == -1){
                     result_listen = listen(sock, 5);
                 }
+                printf("Fin de l'écoute ! \n");
 
                 //Acceptation de demande de connexion
                 int result_accept = -1;
                 while (result_accept == -1){
                     result_accept = accept(sock, (struct sockaddr *)&adr_em, &lg_adr_em);
                 }
+                printf("Demande de connexion accepté !\n");
 
                 int result_recv = -1;
                 int result_read = -1;
@@ -417,17 +417,19 @@ int main (int argc, char **argv)
                 while(1){
                     //Lecture
                     while(result_read == -1){
-                        result_read = read(sock, pmsg, taille_msg);
+                        result_read = read(result_accept, pmsg, taille_msg);
                     }
+                    printf("Lecture finie !\n");
 
                     //Réception du message
-                    while(result_recv == -1){
-                        result_recv = recv(sock, pmsg, taille_msg, 0);
-                    }
+                //    while(result_recv == -1){
+                 //       result_recv = recv(result_accept, pmsg, taille_msg, 0);
+                  //  }
+                    printf("Message reçu : %d\n", result_recv);
 
                     //Si la réception n'a pas échouée, on affiche le message sur le terminal
-                    if (result_recv!=-1){
-                        printf("PUITS: Reception n°%d (%d)[%s]\n", i, taille_msg, msg);
+                    if (result_read!=-1) {
+                        printf("PUITS: Reception n°%d (%d)[%s]\n", i, taille_msg, pmsg);
                         i++;
                     }
                 }
@@ -458,7 +460,7 @@ int main (int argc, char **argv)
                     exit(1);
                 }
 
-                //Ecoute de demande de connexion
+                //Dimensionnement de la file d'attente de demandes de connexions
                 int result_listen = -1;
                 while(result_listen == -1){
                     result_listen = listen(sock, 5);
@@ -469,31 +471,37 @@ int main (int argc, char **argv)
                 while (result_accept == -1){
                     result_accept = accept(sock, (struct sockaddr *)&adr_em, &lg_adr_em);
                 }
+                printf("Demande de connexion accepté !\n");
 
-                int result_recv = -1;
                 int result_read = -1;
                 int i=1;
 
                 //Boucle finie
                 while(i<=nb_message){
+                    result_read = -1;
                     //Lecture
                     while(result_read == -1){
-                        result_read = read(sock, pmsg, taille_msg);
-                    }
-
-                    //Réception du message
-                    while(result_recv == -1){
-                        result_recv = recv(sock, pmsg, taille_msg, 0);
+                        result_read = read(result_accept, pmsg, taille_msg);
                     }
 
                     //Si la réception n'a pas échouée, on affiche le message sur le terminal
-                    if (result_recv!=-1){
-                        printf("PUITS: Reception n°%d (%d)[%s]\n", i, taille_msg, msg);
+                    if (result_read!=-1){
+                        printf("PUITS: Reception n°%d (%d)[%s]\n", i, taille_msg, pmsg);
                         i++;
                     }
                 }
 
+                printf("PUITS: fin\n");
+
             }
+
+            //Fermeture de la connexion
+            int result_shutdwn = -1;
+
+            while(result_shutdwn == -1){
+                result_shutdwn = shutdown(sock,0);
+            }
+            printf("Shutdown réussi !\n");
 
             //Si la création du socket a échoué, on arrête le programme
         } else {
