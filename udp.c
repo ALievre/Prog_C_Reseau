@@ -22,32 +22,14 @@ données du réseau */
 #include "message.h"
 #include "udp.h"
 
-struct sockaddr_in construire_adresse_socket_source(int port){
-    struct hostent *hp;
-    struct sockaddr_in adr_distant;
 
-    //Affectation du domaine et du n° de port
-    memset((char * )& adr_distant,0,sizeof(adr_distant));
-    adr_distant.sin_family = AF_INET;
-    adr_distant.sin_port = port;
-
-    //Affectation de l'adresse IP
-    if((hp = gethostbyname("localhost"))==NULL) {
-        printf("Erreur gethostbyname\n");
-        exit(1);
-    }
-    memcpy((char *)&(adr_distant.sin_addr.s_addr), hp->h_addr, hp->h_length);
-
-    return adr_distant;
-}
-
-void envoyer_message(int i, int taille_msg, char * pmsg, int sock, int nb_message, struct sockaddr_in adr_distant,char alphab){
+void envoyer_message_udp(int i, int taille_msg, char * pmsg, int sock, int nb_message, struct sockaddr_in adr_distant,char alphab){
+    char msg_ent[taille_msg];
+    char * pmsg_e = msg_ent;
     int nb_entete = 5;
     int nb_tiret;
     char alphabet = alphab;
     char msg[taille_msg];
-    char msg_ent[taille_msg];
-    char * pmsg_e = msg_ent;
 
     //Incrémentation des lettres de l'alphabet
     if(alphabet == 'z') {
@@ -74,6 +56,9 @@ void envoyer_message(int i, int taille_msg, char * pmsg, int sock, int nb_messag
     strncat(msg_ent, n_compteur, strlen(n_compteur));
     strncat(msg_ent,msg, (taille_msg - nb_entete));
 
+    //Ecriture du message
+    //ecrire_message(i, taille_msg, pmsg, sock, nb_message, adr_distant, alphab);
+
     //Envoi du message
     int result_send = sendto(sock, pmsg_e, taille_msg, 0,(struct sockaddr*)&adr_distant, sizeof(adr_distant));
 
@@ -85,18 +70,3 @@ void envoyer_message(int i, int taille_msg, char * pmsg, int sock, int nb_messag
     *pmsg = *pmsg_e;
 }
 
-struct sockaddr_in construire_adresse_socket_puit(int port, int sock){
-    struct sockaddr_in adr_local;
-
-    //Construction de l'adresse du socket, du n° de port et de l'adresse IP
-    memset((char * )& adr_local,0,sizeof(adr_local));
-    adr_local.sin_family = AF_INET;
-    adr_local.sin_port = port;
-    adr_local.sin_addr.s_addr= INADDR_ANY;
-
-    //Association de l'adresse du socket et de sa représentation interne
-    if(bind(sock,(struct sockaddr *)&adr_local, sizeof(adr_local)) ==-1) {
-        printf("Echec du bind\n");
-        exit(1);
-    }
-}
