@@ -151,6 +151,7 @@ int main (int argc, char **argv)
                 while(1){
                     //Réception du message
                     result_recv = recvfrom(sock, pmsg, taille_msg, 0,(struct sockaddr *) &adr_em, &lg_adr_em);
+                    msg[taille_msg] ='\0';
 
                     //Si la réception n'a pas échouée, on affiche le message sur le terminal
                     if (result_recv!=-1){
@@ -167,6 +168,7 @@ int main (int argc, char **argv)
                 while(i<=nb_message){
                     //Réception du message
                     result_recv = recvfrom(sock, pmsg, taille_msg, 0,(struct sockaddr *) &adr_em, &lg_adr_em);
+                    msg[taille_msg] ='\0';
 
                     //Si la réception n'a pas échouée, on affiche le message sur le terminal
                     if (result_recv != -1){
@@ -266,6 +268,7 @@ int main (int argc, char **argv)
                     result_read = -1;
                     while (result_read == -1) {
                         result_read = read(result_accept, pmsg, taille_msg);
+                        msg[taille_msg] ='\0';
                     }
 
                     while (strcmp(old_msg, msg) != 0) {
@@ -305,6 +308,7 @@ int main (int argc, char **argv)
                     //Lecture
                     while(result_read == -1){
                         result_read = read(result_accept, pmsg, taille_msg);
+                        msg[taille_msg] ='\0';
                     }
 
                     //Si la réception n'a pas échouée, on affiche le message sur le terminal
