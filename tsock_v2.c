@@ -20,7 +20,7 @@ données du réseau */
 #include <string.h>
 
 #include "udp.h"
-//#include "tcp.h"
+#include "tcp.h"
 #include "socket.h"
 #include "message.h"
 
@@ -114,12 +114,12 @@ int main (int argc, char **argv)
             adr_distant = construire_adresse_socket_source(port);
 
             //Envoie du message
-            char msg_ent[taille_msg];
-            char * pmsg = msg_ent;
+            //char msg_ent[taille_msg];
+            //char * pmsg = msg_ent;
             char alphabet = 'a';
 
             for(int i = 1; i<=nb_message; i++) {
-                envoyer_message_udp(i, taille_msg, pmsg, sock, nb_message, adr_distant, alphabet);
+                envoyer_message_udp(i, taille_msg, sock, nb_message, adr_distant, alphabet);
             }
 
             //Fin de l'envoi
@@ -203,53 +203,14 @@ int main (int argc, char **argv)
             }
             printf("Connexion établie !\n");
 
+            //Envoie du message
+            //char msg_ent[taille_msg];
+            //char * pmsg = msg_ent;
             char alphabet = 'a';
-            int nb_entete = 5;
 
             //Ecriture du message
             for(int i = 1; i<=nb_message; i++) {
-
-                int nb_tiret;
-                char msg[taille_msg];
-                char msg_ent[taille_msg];
-                char * pmsg = msg_ent;
-
-                //Réinitialisation de msg_ent
-                memset(msg_ent, 0, sizeof(msg_ent));
-
-                construire_message(msg, alphabet, taille_msg);
-
-                //Conversion du compteur en char
-                char n_compteur[nb_entete];
-                sprintf(n_compteur, "%d", i);
-
-                nb_tiret = nb_entete - strlen(n_compteur);
-
-                //Ecriture des tirets
-                for(int j = 0; j<nb_tiret; j++) {
-                    msg_ent[j] = '-';
-                }
-
-                //Mise en place du message entier par concaténation
-                strncat(msg_ent, n_compteur, strlen(n_compteur));
-                strncat(msg_ent,msg, (taille_msg - nb_entete));
-
-                int result_write = -1;
-
-                //Ecriture du message sur le buffer
-                while(result_write == -1){
-                    result_write = write(sock, pmsg, taille_msg);
-                }
-
-                //Si l'envoi est réussi, on affiche les messages sur le terminal
-                if (result_write!=-1){
-                    printf("SOURCE: Envoi n°%d (%d)[%s]\n", i, taille_msg, msg_ent);
-                }
-
-                //Incrémentation des lettres de l'alphabet
-                if(alphabet == 'z') {
-                    alphabet = 'a';
-                } else alphabet++;
+                envoyer_message_tcp(i, taille_msg, sock, nb_message, adr_distant, alphabet);
             }
 
             //Fin de l'envoi
@@ -321,7 +282,6 @@ int main (int argc, char **argv)
                         while (result_read == -1) {
                             result_read = read(result_accept, pmsg, taille_msg);
                         }
-
                     }
                 }
 
@@ -353,9 +313,7 @@ int main (int argc, char **argv)
                         i++;
                     }
                 }
-
                 printf("PUITS: fin\n");
-
             }
 
             //Fermeture de la connexion

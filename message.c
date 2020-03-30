@@ -32,7 +32,3 @@ void afficher_message(char *message, int lg) {
 	for(i = 0; i<lg; i++) printf("%c", message[i]);
 	printf("\n");
 }
-/*
-void ecrire_message(int i, int taille_msg, char * pmsg, int sock, int nb_message, struct sockaddr_in adr_distant,char alphab){
-
-}*/

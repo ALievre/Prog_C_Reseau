@@ -20,10 +20,9 @@ données du réseau */
 #include <string.h>
 
 #include "message.h"
-#include "udp.h"
+#include "tcp.h"
 
-
-void envoyer_message_udp(int i, int taille_msg, int sock, int nb_message, struct sockaddr_in adr_distant,char alphab){
+void envoyer_message_tcp(int i, int taille_msg, int sock, int nb_message, struct sockaddr_in adr_distant,char alphab){
     char msg_ent[taille_msg];
     char * pmsg_e = msg_ent;
     int nb_entete = 5;
@@ -56,12 +55,15 @@ void envoyer_message_udp(int i, int taille_msg, int sock, int nb_message, struct
     strncat(msg_ent, n_compteur, strlen(n_compteur));
     strncat(msg_ent,msg, (taille_msg - nb_entete));
 
-    //Envoi du message
-    int result_send = sendto(sock, pmsg_e, taille_msg, 0,(struct sockaddr*)&adr_distant, sizeof(adr_distant));
+    int result_write = -1;
+
+    //Ecriture du message sur le buffer
+    while(result_write == -1){
+        result_write = write(sock, pmsg_e, taille_msg);
+    }
 
     //Si l'envoi est réussi, on affiche les messages sur le terminal
-    if (result_send!=-1){
+    if (result_write!=-1){
         printf("SOURCE: Envoi n°%d (%d)[%s]\n", i, taille_msg, msg_ent);
     }
 }
-
