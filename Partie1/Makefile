@@ -1,9 +1,9 @@
 
-tsock_v3: message.o socket.o udp.o tcp.o tsock_v3.o
-	gcc -g -Wall tsock_v3.o message.o socket.o udp.o tcp.o -o tsock_v3
+tsock_v4: message.o socket.o udp.o tcp.o tsock_v4.o
+	gcc -g -Wall tsock_v4.o message.o socket.o udp.o tcp.o -o tsock_v4
 
-tsock_v3.o: tsock_v3.c
-	gcc -g -Wall -c tsock_v3.c
+tsock_v4.o: tsock_v4.c
+	gcc -g -Wall -c tsock_v4.c
 
 message.o: message.c
 	gcc -g -Wall -c message.c
