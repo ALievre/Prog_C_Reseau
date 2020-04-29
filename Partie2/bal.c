@@ -53,9 +53,11 @@ void Ajouter_Fin_Bal(L_Bal *liste_bal, int num_bal){
         liste_bal->last->next = NULL;
         temp->next = liste_bal->last;
     }
+
+    liste_bal->nbBal ++;
 }
 
-void Ajouter_Fin_Lettre(L_Lettre *liste_lettre, int num_lettre, char *pmsg){
+void Ajouter_Fin_Lettre(L_Lettre *liste_lettre, int num_lettre, char *pmsg, int lg_lettre){
     Lettre * temp;
 
     //si la liste est vide, l'élément devient premier et dernier élément
@@ -63,6 +65,7 @@ void Ajouter_Fin_Lettre(L_Lettre *liste_lettre, int num_lettre, char *pmsg){
         liste_lettre->last = (Lettre *)malloc(sizeof(Lettre));
         liste_lettre->first = (Lettre *)malloc(sizeof(Lettre));
         liste_lettre->last->numLettre = num_lettre;
+        liste_lettre->last->lgLettre = lg_lettre;
         strcpy(&(liste_lettre->last)->message,pmsg);
         liste_lettre->last->next = NULL;
         liste_lettre->first = liste_lettre->last;
@@ -72,10 +75,13 @@ void Ajouter_Fin_Lettre(L_Lettre *liste_lettre, int num_lettre, char *pmsg){
         temp = liste_lettre->last;
         liste_lettre->last = (Lettre *)malloc(sizeof(Lettre));
         liste_lettre->last->numLettre = num_lettre;
+        liste_lettre->last->lgLettre = lg_lettre;
         strcpy(&(liste_lettre->last)->message,pmsg);
         liste_lettre->last->next = NULL;
         temp->next = liste_lettre->last;
     }
+
+    liste_lettre->nbLettres ++;
 }
 
 int Supprimer_Premier_Bal(L_Bal *liste){
@@ -119,3 +125,16 @@ int Supprimer_Premier_Lettre(L_Lettre *liste){
 
 
 //int Lire_Premiere_Lettre(){}
+
+void Afficher_Lettres(L_Lettre *liste){
+    if(liste == NULL){
+        exit(EXIT_FAILURE);
+    }
+
+    Lettre *actuel = liste->first;
+
+    while(actuel != NULL){
+        printf("Lettre n°%d : [%s] \n", actuel->numLettre, &(actuel)->message);
+        actuel = actuel->next;
+    }
+}

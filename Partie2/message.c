@@ -35,7 +35,7 @@ void afficher_message(char *message, int lg) {
 	printf("\n");
 }
 
-void envoyer_message_emetteur(int i, int lg_lettre, int sock, int nb_lettre, struct sockaddr_in adr_distant,char alphab, int num_recept){
+void envoyer_message_emetteur(int i, int lg_lettre, int sock, int nb_lettre, char alphab, int num_recept){
 
     char msg_ent[lg_lettre];
     char * pmsg_e = msg_ent;
@@ -43,7 +43,7 @@ void envoyer_message_emetteur(int i, int lg_lettre, int sock, int nb_lettre, str
     int nb_tiret;
     char alphabet = alphab;
     char msg[lg_lettre];
-    char pdu[lg_lettre];
+    char pdu[lg_lettre] ;
     char * ppdu = pdu;
     char num_r[nb_entete];
     char nb_l[nb_entete];
@@ -104,7 +104,7 @@ void envoyer_message_emetteur(int i, int lg_lettre, int sock, int nb_lettre, str
 
         //Si l'envoi est réussi, on affiche les messages sur le terminal
         if (result_write!=-1){
-            printf("SOURCE: Envoi lettre n°%d à destination du récepteur %d (%d)[%s]\n", num_recept, i, lg_lettre, msg_ent);
+            printf("EMISSION: Envoi lettre n°%d à destination du récepteur %d (%d)[%s]\n", num_recept, i, lg_lettre, msg_ent);
         }
 
     } else {
@@ -118,18 +118,18 @@ void envoyer_message_emetteur(int i, int lg_lettre, int sock, int nb_lettre, str
 
         //Si l'envoi est réussi, on affiche les messages sur le terminal
         if (result_write!=-1){
-            printf("SOURCE: Envoi lettre n°%d à destination du récepteur %d (%d)[%s]\n", num_recept, i, lg_lettre, msg_ent);
+            printf("EMISSION: Envoi lettre n°%d à destination du récepteur %d (%d)[%s]\n", i, num_recept, lg_lettre, msg_ent);
         }
 
     }
 
 }
 
-void envoyer_message_recepteur(int lg_lettre, int sock, struct sockaddr_in adr_distant, int num_recept){
+void envoyer_message_recepteur(int lg_lettre, int sock, int num_recept){
 
-    int nb_entete = 5;
     char pdu[lg_lettre];
     char * ppdu = pdu;
+    int nb_entete = 5;
     char num_r[nb_entete];
 
     sprintf(num_r, "%d", num_recept);
@@ -145,5 +145,27 @@ void envoyer_message_recepteur(int lg_lettre, int sock, struct sockaddr_in adr_d
     while(result_write == -1){
         result_write = write(sock, ppdu, lg_lettre);
     }
+    //Si l'envoi est réussi, on affiche les messages sur le terminal
+    if (result_write!=-1){
+        printf("Envoi pdu réussi\n");
+    }
+
+}
+
+void envoyer_message_bal(int num_lettre, int lg_lettre, int sock, int nb_lettre, char *pmsg, int num_recept){
+
+    int result_write = -1;
+
+    //Ecriture du premier message sur le buffer
+    while(result_write == -1){
+        result_write = write(sock, pmsg, lg_lettre);
+    }
+
+    //Si l'envoi est réussi, on affiche les messages sur le terminal
+    if (result_write!=-1){
+        printf("SERVEUR: Envoi lettre n°%d au récepteur %d (%d)[%s]\n", num_lettre, num_recept, lg_lettre, pmsg);
+    }
+
+    printf("envoie\n");
 
 }
